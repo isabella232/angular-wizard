@@ -2,6 +2,8 @@ describe( 'AngularWizard', function() {
     var $compile, $rootScope, WizardHandler;
 
     beforeEach(module('mgo-angular-wizard'));
+
+
     beforeEach(inject(function(_$compile_, _$rootScope_, _WizardHandler_) {
         $compile = _$compile_;
         $rootScope = _$rootScope_;
@@ -16,24 +18,24 @@ describe( 'AngularWizard', function() {
     function createView(scope) {
         scope.referenceCurrentStep = null;
         var element = angular.element('<wizard on-finish="finishedWizard()" current-step="referenceCurrentStep" ng-init="msg = 14" >'
-                + '    <wz-step title="Starting">'
+                + '    <wz-step title="Starting" canenter="enterValidation">'
                 + '        <h1>This is the first step</h1>'
                 + '        <p>Here you can use whatever you want. You can use other directives, binding, etc.</p>'
                 + '        <input type="submit" wz-next value="Continue" />'
                 + '    </wz-step>'
-                + '    <wz-step title="Continuing">'
+                + '    <wz-step title="Continuing" canexit="stepValidation">'
                 + '        <h1>Continuing</h1>'
                 + '        <p>You have continued here!</p>'
                 + '        <input type="submit" wz-next value="Go on" />'
+                + '    </wz-step>'
+                + '    <wz-step title="More steps" canenter="enterValidation">'
+                + '        <p>Even more steps!!</p>'
+                + '        <input type="submit" wz-next value="Finish now" />'
                 + '    </wz-step>'
                 + '    <wz-step title="Dynamic" wz-disabled="{{dynamicStepDisabled == \'Y\'}}">'
                 + '        <h1>Dynamic {{dynamicStepDisabled}}</h1>'
                 + '        <p>You have continued here!</p>'
                 + '        <input type="submit" wz-next value="Go on" />'
-                + '    </wz-step>'
-                + '    <wz-step title="More steps">'
-                + '        <p>Even more steps!!</p>'
-                + '        <input type="submit" wz-next value="Finish now" />'
                 + '    </wz-step>'
                 + '</wizard>');
         var elementCompiled = $compile(element)(scope);
@@ -81,7 +83,7 @@ describe( 'AngularWizard', function() {
         var scope = $rootScope.$new();
         var view = createView(scope);
         expect(scope.referenceCurrentStep).toEqual('Starting');
-        WizardHandler.wizard().goTo(2);
+        WizardHandler.wizard().goTo(3);
         $rootScope.$digest();
         expect(scope.referenceCurrentStep).toEqual('Dynamic');
     });
@@ -90,7 +92,7 @@ describe( 'AngularWizard', function() {
         scope.dynamicStepDisabled = 'Y';
         var view = createView(scope);
         expect(WizardHandler).toBeTruthy();
-        expect(view.find('ul.steps-indicator li').length).toEqual(3);
+        expect(view.find('li').length).toEqual(3);
     });
     it( "should enable or disable dynamic steps based on conditions", function() {
         var scope = $rootScope.$new();
@@ -101,6 +103,121 @@ describe( 'AngularWizard', function() {
         WizardHandler.wizard().goTo(2);
         $rootScope.$digest();
         expect(scope.referenceCurrentStep).toEqual('More steps');
+    });
+    it( "should go to next step becasue callback is truthy", function() {
+        var scope = $rootScope.$new();
+        var view = createView(scope);
+        expect(scope.referenceCurrentStep).toEqual('Starting');
+        WizardHandler.wizard().next(function(){
+            return true
+        });
+        $rootScope.$digest();
+        expect(scope.referenceCurrentStep).toEqual('Continuing');
+    });
+    it( "should NOT go to next step because callback is falsey", function() {
+        var scope = $rootScope.$new();
+        var view = createView(scope);
+        expect(scope.referenceCurrentStep).toEqual('Starting');
+        WizardHandler.wizard().next(function(){
+            return false
+        });
+        $rootScope.$digest();
+        expect(scope.referenceCurrentStep).toEqual('Starting');
+    });
+    it( "should go to next step because CANEXIT is UNDEFINED", function() {
+        var scope = $rootScope.$new();
+        var view = createView(scope);
+        expect(scope.referenceCurrentStep).toEqual('Starting');
+        WizardHandler.wizard().next();
+        $rootScope.$digest();
+        expect(scope.referenceCurrentStep).toEqual('Continuing');
+    });
+    it( "should go to next step because CANEXIT is TRUE", function() {
+        var scope = $rootScope.$new();
+        var view = createView(scope);
+        scope.stepValidation = function(){
+            return true;
+        };
+        expect(scope.referenceCurrentStep).toEqual('Starting');
+        WizardHandler.wizard().next();
+        $rootScope.$digest();
+        expect(scope.referenceCurrentStep).toEqual('Continuing');
+        WizardHandler.wizard().next();
+        $rootScope.$digest();
+        expect(scope.referenceCurrentStep).toEqual('More steps');
+    });
+    it( "should NOT go to next step because CANEXIT is FALSE", function() {
+        var scope = $rootScope.$new();
+        var view = createView(scope);
+        scope.stepValidation = function(){
+            return false;
+        };
+        expect(scope.referenceCurrentStep).toEqual('Starting');
+        WizardHandler.wizard().next();
+        $rootScope.$digest();
+        expect(scope.referenceCurrentStep).toEqual('Continuing');
+        WizardHandler.wizard().next();
+        $rootScope.$digest();
+        expect(scope.referenceCurrentStep).toEqual('Continuing');
+    });
+    it( "should go to next step because CANENTER is TRUE", function() {
+        var scope = $rootScope.$new();
+        var view = createView(scope);
+        scope.enterValidation = function(){
+            return true;
+        };
+        expect(scope.referenceCurrentStep).toEqual('Starting');
+        WizardHandler.wizard().next();
+        $rootScope.$digest();
+        expect(scope.referenceCurrentStep).toEqual('Continuing');
+        WizardHandler.wizard().next();
+        $rootScope.$digest();
+        expect(scope.referenceCurrentStep).toEqual('More steps');
+    });
+    it( "should NOT go to next step because CANENTER is FALSE", function() {
+        var scope = $rootScope.$new();
+        var view = createView(scope);
+        scope.enterValidation = function(){
+            return false;
+        };
+        expect(scope.referenceCurrentStep).toEqual('Starting');
+        WizardHandler.wizard().next();
+        $rootScope.$digest();
+        expect(scope.referenceCurrentStep).toEqual('Continuing');
+        WizardHandler.wizard().next();
+        $rootScope.$digest();
+        expect(scope.referenceCurrentStep).toEqual('Continuing');
+    });
+    it( "should NOT return to a previous step. Although CANEXIT is false and we are heading to a previous state, the can enter validation is false", function() {
+        var scope = $rootScope.$new();
+        var view = createView(scope);
+        scope.stepValidation = function(){
+            return false;
+        };
+        scope.enterValidation = function(){
+            return false;
+        };
+        expect(scope.referenceCurrentStep).toEqual('Starting');
+        WizardHandler.wizard().next();
+        $rootScope.$digest();
+        expect(scope.referenceCurrentStep).toEqual('Continuing');
+        WizardHandler.wizard().previous();
+        $rootScope.$digest();
+        expect(scope.referenceCurrentStep).toEqual('Continuing');
+    });
+    it( "should return to a previous step even though CANEXIT is false", function() {
+        var scope = $rootScope.$new();
+        var view = createView(scope);
+        scope.stepValidation = function(){
+            return false;
+        };
+        expect(scope.referenceCurrentStep).toEqual('Starting');
+        WizardHandler.wizard().next();
+        $rootScope.$digest();
+        expect(scope.referenceCurrentStep).toEqual('Continuing');
+        WizardHandler.wizard().previous();
+        $rootScope.$digest();
+        expect(scope.referenceCurrentStep).toEqual('Starting');
     });
     it( "should finish", function() {
         var scope = $rootScope.$new();
