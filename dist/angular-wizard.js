@@ -1,6 +1,6 @@
 /**
  * Easy to use Wizard library for AngularJS
- * @version v0.4.3 - 2015-04-13 * @link https://github.com/mgonto/angular-wizard
+ * @version v0.4.3 - 2015-04-14 * @link https://github.com/mgonto/angular-wizard
  * @author Martin Gontovnikas <martin@gon.to>
  * @license MIT License, http://www.opensource.org/licenses/MIT
  */
@@ -62,7 +62,7 @@ angular.module('mgo-angular-wizard').directive('wizard', function() {
             hideIndicators: '=',
             editMode: '=',
             name: '@',
-            stepValidator: '&'
+            validity: '='
         },
         templateUrl: function(element, attributes) {
             return attributes.template || "wizard.html";
