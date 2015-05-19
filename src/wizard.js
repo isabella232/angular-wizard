@@ -10,7 +10,8 @@ angular.module('mgo-angular-wizard').directive('wizard', function() {
             hideIndicators: '=',
             editMode: '=',
             name: '@',
-            validity: '='
+            validity: '=',
+            stepClasses: '='
         },
         templateUrl: function(element, attributes) {
             return attributes.template || "wizard.html";
